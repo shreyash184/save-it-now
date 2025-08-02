@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Expense Tracker</title>
+</head>
+<body>
+  <h1>Expense Tracker</h1>
+
+  <!-- Login Form -->
+  <div id="loginSection">
+    <h2>Login</h2>
+    <form id="loginForm">
+      <input type="email" id="email" placeholder="Email" required />
+      <input type="password" id="password" placeholder="Password" required />
+      <button type="submit">Login</button>
+    </form>
+  </div>
+
+  <!-- Expense Form (Hidden until login) -->
+  <div id="expenseSection" style="display: none;">
+    <h2>Add Expense</h2>
+    <form id="expenseForm">
+      <label for="amount">Amount:</label>
+      <input type="number" id="amount" name="amount" required /><br /><br />
+
+      <label for="note">Note:</label>
+      <input type="text" id="note" name="note" /><br /><br />
+
+      <label for="category">Category:</label>
+      <input type="text" id="category" name="category" required /><br /><br />
+
+      <button type="submit">Add Expense</button>
+    </form>
+    <button id="logoutBtn">Logout</button>
+  </div>
+
+  <script>
+    const loginForm = document.getElementById('loginForm');
+    const expenseForm = document.getElementById('expenseForm');
+    const loginSection = document.getElementById('loginSection');
+    const expenseSection = document.getElementById('expenseSection');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    // Show/hide forms based on auth
+    const token = localStorage.getItem('token');
+    if (token) {
+      loginSection.style.display = 'none';
+      expenseSection.style.display = 'block';
+    }
+
+    // Login handler
+    loginForm.addEventListener('submit', async function (e) {
+      e.preventDefault();
+
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      try {
+        const response = await fetch('/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+
+        const data = await response.json();
+        if (!response.ok || !data.token) throw new Error('Login failed');
+
+        localStorage.setItem('token', data.token);
+        loginSection.style.display = 'none';
+        expenseSection.style.display = 'block';
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+
+    // Add expense handler
+    expenseForm.addEventListener('submit', async function (e) {
+      e.preventDefault();
+
+      const amount = document.getElementById('amount').value;
+      const note = document.getElementById('note').value;
+      const category = document.getElementById('category').value;
+
+      const expense = {
+        amount: parseFloat(amount),
+        note,
+        category,
+      };
+
+      const token = localStorage.getItem('token');
+      console.log(token)
+
+      try {
+        const response = await fetch('/expense', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify(expense),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to add expense');
+        }
+        console.log(response.body)
+        await response.json();
+        expenseForm.reset();
+        alert('Expense added!');
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+
+    // Logout
+    logoutBtn.addEventListener('click', () => {
+      localStorage.removeItem('token');
+      expenseSection.style.display = 'none';
+      loginSection.style.display = 'block';
+    });
+  </script>
+</body>
+</html>
